@@ -1,29 +1,23 @@
+//go:generate go run github.com/99designs/gqlgen --verbose
 package resolvers
 
-// THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
-
 import (
-	"context"
-
-	main "github.com/leosiimas/team-up"
-	"github.com/leosiimas/team-up/graph/generated"
+	"github.com/go-pg/pg/v9"
+	"github.com/leosiimas/team-up-dev/graph/generated"
 )
 
-type Resolver struct{}
-
-func (r *mutationResolver) UserCreate(ctx context.Context, user main.UserInput) (*main.User, error) {
-	panic("not implemented")
+type Resolver struct {
+	DB *pg.DB
 }
 
-func (r *mutationResolver) Login(ctx context.Context, input main.Login) (string, error) {
-	panic("not implemented")
+func (r *Resolver) Mutation() generated.MutationResolver {
+	return &mutationResolver{r}
 }
-
-func (r *mutationResolver) RefreshToken(ctx context.Context, input main.RefreshTokenInput) (string, error) {
-	panic("not implemented")
+func (r *Resolver) Query() generated.QueryResolver {
+	return &queryResolver{r}
 }
-
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 type mutationResolver struct{ *Resolver }
+
+type queryResolver struct{ *Resolver }
+

@@ -3,16 +3,7 @@ type User {
   name: String!
 }
 
-input RefreshTokenInput{
-  token: String!
-}
-
 input UserInput {
-  name: String!
-  password: String!
-}
-
-input Login {
   name: String!
   password: String!
 }
