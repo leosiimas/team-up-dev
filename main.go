@@ -1,29 +1,65 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/leosiimas/team-up/graph"
-	"github.com/leosiimas/team-up/graph/generated"
+	"github.com/fatih/color"
+	"github.com/go-chi/chi"
+	"github.com/go-pg/pg/v9"
+	"github.com/leosiimas/team-up-dev/graph/generated"
+	"github.com/leosiimas/team-up-dev/resolvers"
 )
 
-const defaultPort = "8080"
+const (
+	port = ":8080"
+)
+
+func lineSeparator() {
+	fmt.Println("========")
+}
+
+func startMessage() {
+	lineSeparator()
+	color.Green("Listening on localhost%s\n", port)
+	color.Green("Visit `http://localhost%s/graphql` in your browser\n", port)
+	lineSeparator()
+}
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
+	lineSeparator()
+	// Create the database `todos` manually within postgres
+	db := pg.Connect(&pg.Options{
+		User:     "postgres",
+		Password: "123456",
+		Database: "todos",
+	})
+	defer db.Close()
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	r := chi.NewRouter()
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	// The base path that users would use is POST /graphql which is fairly
+	// idiomatic.
+	r.Route("/graphql", func(r chi.Router) {
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+		schema := generated.NewExecutableSchema(generated.Config{
+			Resolvers: &resolvers.Resolver{
+				DB: db,
+			},
+		})
+
+		srv := handler.NewDefaultServer(schema)
+		srv.Use(extension.FixedComplexityLimit(300))
+
+		r.Handle("/", srv)
+	})
+
+	gqlPlayground := playground.Handler("api-gateway", "/graphql")
+	r.Get("/", gqlPlayground)
+
+	startMessage()
+	panic(http.ListenAndServe(port, r))
 }
