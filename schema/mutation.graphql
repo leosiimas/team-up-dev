@@ -1,0 +1,5 @@
+type Mutation {
+  userCreate(user: UserInput!): User!
+  login(input: Login!): String!
+  refreshToken(input: RefreshTokenInput!): String!
+}
